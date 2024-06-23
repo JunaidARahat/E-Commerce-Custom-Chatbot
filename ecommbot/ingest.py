@@ -17,7 +17,7 @@ embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
 def ingestdata(status):
     vstore = AstraDBVectorStore(
             embedding=embedding,
-            collection_name="chatbotecomm",
+            collection_name="chatbot",
             api_endpoint=ASTRA_DB_API_ENDPOINT,
             token=ASTRA_DB_APPLICATION_TOKEN,
             namespace=ASTRA_DB_KEYSPACE,
