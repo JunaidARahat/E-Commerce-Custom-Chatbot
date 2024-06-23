@@ -1,30 +1,43 @@
-
+from langchain_astradb import AstraDBVectorStore
+from langchain_openai import OpenAIEmbeddings
+from dotenv import load_dotenv
+import os
 import pandas as pd
-from langchain_core.documents import Document
+from ecommbot.data_converter import dataconveter
 
+load_dotenv()
 
-def dataconveter():
-    product_data=pd.read_csv(r"D:\Ecommerce Chatbot 2024\E-Commerce-Custom-Chatbot\data\flipkart_product_review.csv")
+OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
+ASTRA_DB_API_ENDPOINT=os.getenv("ASTRA_DB_API_ENDPOINT")
+ASTRA_DB_APPLICATION_TOKEN=os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+ASTRA_DB_KEYSPACE=os.getenv("ASTRA_DB_KEYSPACE")
 
-    data=product_data[["product_title","review"]]
+embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
 
-    product_list = []
+def ingestdata(status):
+    vstore = AstraDBVectorStore(
+            embedding=embedding,
+            collection_name="chatbotecomm",
+            api_endpoint=ASTRA_DB_API_ENDPOINT,
+            token=ASTRA_DB_APPLICATION_TOKEN,
+            namespace=ASTRA_DB_KEYSPACE,
+        )
+    
+    storage=status
+    
+    if storage==None:
+        docs=dataconveter()
+        inserted_ids = vstore.add_documents(docs)
+    else:
+        return vstore
+    return vstore, inserted_ids
 
-    # Iterate over the rows of the DataFrame
-    for index, row in data.iterrows():
-        # Construct an object with 'product_name' and 'review' attributes
-        obj = {
-                'product_name': row['product_title'],
-                'review': row['review']
-            }
-        # Append the object to the list
-        product_list.append(obj)
-
-        
+if __name__=='__main__':
+    vstore,inserted_ids=ingestdata(None)
+    print(f"\nInserted {len(inserted_ids)} documents.")
+    results = vstore.similarity_search("can you tell me the low budget sound basshead.")
+    for res in results:
+            print(f"* {res.page_content} [{res.metadata}]")
             
-    docs = []
-    for entry in product_list:
-        metadata = {"product_name": entry['product_name']}
-        doc = Document(page_content=entry['review'], metadata=metadata)
-        docs.append(doc)
-    return docs
+
+   
